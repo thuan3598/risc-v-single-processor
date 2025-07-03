@@ -1,4 +1,4 @@
-module RISCV_Single_Cycle(
+module RV32I_Processor(
     input logic clk,
     input logic rst_n,
     output logic [31:0] PC_out_top,
@@ -55,13 +55,13 @@ module RISCV_Single_Cycle(
     assign funct7 = Instruction_out_top[31:25];
 
     // Immediate generator
-    Imm_Gen imm_gen(
+    immGen imm_gen(
         .inst(Instruction_out_top),
         .imm_out(Imm)
     );
 
     // Register File (instance name must be Reg_inst for tb)
-    RegisterFile Reg_inst(
+    registerFile Reg_inst(
         .clk(clk),
         .rst_n(rst_n),
         .RegWrite(RegWrite),
@@ -100,7 +100,7 @@ module RISCV_Single_Cycle(
     assign WriteData = (MemToReg) ? MemReadData : ALU_result;
 
     // Control unit
-    control_unit ctrl(
+    CU ctrl(
         .opcode(opcode),
         .funct3(funct3),
         .funct7(funct7),
@@ -114,7 +114,7 @@ module RISCV_Single_Cycle(
     );
 
     // Branch comparator
-    Branch_Comp comp(
+    branchComp comp(
         .A(ReadData1),
         .B(ReadData2),
         .Branch(Branch),

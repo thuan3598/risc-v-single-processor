@@ -1,4 +1,4 @@
-module ALU_decoder(
+module ALUdecoder(
     input  [1:0] alu_op,
     input  [2:0] funct3,
     input        funct7b5,

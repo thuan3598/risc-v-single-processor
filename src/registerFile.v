@@ -1,4 +1,4 @@
-module RegisterFile (
+module registerFile (
     input logic clk,
     input logic RegWrite,
     input logic [4:0] rs1,
@@ -23,3 +23,4 @@ module RegisterFile (
         end
     end
 endmodule
+

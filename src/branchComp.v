@@ -1,4 +1,4 @@
-module Branch_Comp (
+module branchComp (
     input  logic [31:0] A,
     input  logic [31:0] B,
     input  logic Branch,
