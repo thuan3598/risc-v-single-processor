@@ -1,4 +1,4 @@
-module RV32I_Processor(
+module RISCV_Single_Cycle(
     input logic clk,
     input logic rst_n,
     output logic [31:0] PC_out_top,
