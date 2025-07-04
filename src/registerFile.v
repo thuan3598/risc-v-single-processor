@@ -24,4 +24,3 @@ module registerFile (
     end
 endmodule
 
-python3 /srv/calab_grade/CA_Lab-2025/scripts/calab_grade.py sc1 ALU.v ALUdecoder.v branchComp.v DMEM.v IMEM.v immGen.v RV32I_Processor.v registerFile.v CU.v
