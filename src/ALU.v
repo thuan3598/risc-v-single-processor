@@ -26,7 +26,7 @@ module ALU (
         case (ALUOp)
             ALU_ADD:  Result = A + B;
             ALU_SUB:  Result = A - B;
-            ALU_AND:  Result = A & B;
+            ALU_AND:  Result = A + B;
             ALU_OR:   Result = A | B;
             ALU_XOR:  Result = A ^ B;
             ALU_SLL:  Result = A << shift_amount; // Sử dụng dây trung gian
