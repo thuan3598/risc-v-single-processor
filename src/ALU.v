@@ -5,6 +5,7 @@ module ALU (
     output logic [31:0] Result,
     output logic Zero
 );
+
     localparam ALU_ADD  = 4'b0000;
     localparam ALU_SUB  = 4'b0001;
     localparam ALU_AND  = 4'b0010;
@@ -13,10 +14,10 @@ module ALU (
     localparam ALU_SLL  = 4'b0101;
     localparam ALU_SRL  = 4'b0110;
     localparam ALU_SRA  = 4'b0111;
-    localparam ALU_SLT  = 4'b1000; 
-    localparam ALU_SLTU = 4'b1001; 
+    localparam ALU_SLT  = 4'b1000; // Set Less Than (signed)
+    localparam ALU_SLTU = 4'b1001; // Set Less Than Unsigned
 
-    always_comb
+
     wire [4:0] shift_amount = B[4:0];
 
     always_comb begin
@@ -36,7 +37,6 @@ module ALU (
         endcase
     end
 
-    // Zero flag assignment
     assign Zero = (Result == 32'b0);
 
 endmodule

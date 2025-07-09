@@ -21,7 +21,6 @@ module CU (
     localparam LUI_OPCODE    = 7'b0110111;
     localparam AUIPC_OPCODE  = 7'b0010111;
 
-
     localparam F3_ADD_SUB_ADDI = 3'b000;
     localparam F3_SLL_SLLI     = 3'b001;
     localparam F3_SLT_SLTI     = 3'b010;
@@ -31,12 +30,10 @@ module CU (
     localparam F3_OR_ORI       = 3'b110;
     localparam F3_AND_ANDI     = 3'b111;
 
-
     localparam F7_ADD_SLL_SLT_SLTU_XOR_OR_AND = 7'b0000000;
     localparam F7_SUB_SRA                   = 7'b0100000;
 
     always_comb begin
-        
         ALUSrc   = 2'b00; 
         ALUOp    = 4'b0000; 
         Branch   = 1'b0;
@@ -47,10 +44,10 @@ module CU (
 
         case (opcode)
             R_TYPE_OPCODE: begin 
-                ALUSrc   = 2'b00; 
-                RegWrite = 1'b1;  e
+                ALUSrc   = 2'b00;
+                RegWrite = 1'b1;  
 
-                
+               
                 if (funct7 == F7_ADD_SLL_SLT_SLTU_XOR_OR_AND) begin // ADD, SLL, SLT, SLTU, XOR, OR, AND
                     case (funct3)
                         F3_ADD_SUB_ADDI: ALUOp = 4'b0000; // ADD
@@ -67,18 +64,18 @@ module CU (
                     case (funct3)
                         F3_ADD_SUB_ADDI: ALUOp = 4'b0001; // SUB
                         F3_SRL_SRA_SRLI_SRAI: ALUOp = 4'b0111; // SRA
-                        default:         ALUOp = 4'b0000; 
+                        default:         ALUOp = 4'b0000; // Default to ADD
                     endcase
                 end else begin
-                    ALUOp = 4'b0000; 
+                    ALUOp = 4'b0000; // Default to ADD for unknown R-type
                 end
             end
 
-            I_TYPE_OPCODE: begin // I-type instructions (e.g., ADDI, ANDI, ORI, XORI, SLLI, SRLI, SRAI, SLTI, SLTIU)
+            I_TYPE_OPCODE: begin 
                 ALUSrc   = 2'b01; 
                 RegWrite = 1'b1;  
 
-            
+                
                 case (funct3)
                     F3_ADD_SUB_ADDI: ALUOp = 4'b0000; // ADDI
                     F3_SLL_SLLI:     ALUOp = 4'b0101; // SLLI
@@ -111,6 +108,7 @@ module CU (
                 ALUSrc   = 2'b01; 
                 MemWrite = 1'b1;  
                 ALUOp    = 4'b0000; 
+            end
 
             BRANCH_OPCODE: begin 
                 Branch   = 1'b1;  
@@ -120,7 +118,7 @@ module CU (
 
             JAL_OPCODE, JALR_OPCODE: begin 
                 ALUSrc   = 2'b01; 
-                RegWrite = 1'b1; 
+                RegWrite = 1'b1;  
                 MemToReg = 1'b0;  
                 ALUOp    = 4'b0000; 
             end
