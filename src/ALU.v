@@ -17,6 +17,10 @@ module ALU (
     localparam ALU_SLT  = 4'b1000; // Set Less Than (signed)
     localparam ALU_SLTU = 4'b1001; // Set Less Than Unsigned
 
+    // Intermediate wire for shift amount to avoid "constant selects" warning
+    // Dây trung gian này sẽ lấy 5 bit thấp nhất của B trước khi sử dụng trong khối always_comb
+    wire [4:0] shift_amount = B[4:0];
+
     always_comb begin
         Result = 32'b0; // Default value
         case (ALUOp)
@@ -25,9 +29,9 @@ module ALU (
             ALU_AND:  Result = A & B;
             ALU_OR:   Result = A | B;
             ALU_XOR:  Result = A ^ B;
-            ALU_SLL:  Result = A << B[4:0]; // Shift amount is 5 bits
-            ALU_SRL:  Result = A >> B[4:0];
-            ALU_SRA:  Result = $signed(A) >>> B[4:0];
+            ALU_SLL:  Result = A << shift_amount; // Sử dụng dây trung gian
+            ALU_SRL:  Result = A >> shift_amount; // Sử dụng dây trung gian
+            ALU_SRA:  Result = $signed(A) >>> shift_amount; // Sử dụng dây trung gian
             ALU_SLT:  Result = ($signed(A) < $signed(B)) ? 1 : 0;
             ALU_SLTU: Result = (A < B) ? 1 : 0;
             default:  Result = 32'b0; // Should not happen with correct control
