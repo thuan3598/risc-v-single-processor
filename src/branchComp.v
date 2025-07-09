@@ -14,8 +14,8 @@ module branchComp (
     localparam BGEU = 3'b111; // Branch Greater Than or Equal Unsigned
 
     always_comb begin
-        BrTaken = 1'b0; // Default to no branch taken
-        if (Branch) begin // Only evaluate if it's a branch instruction
+        BrTaken = 1'b0; 
+        if (Branch) begin 
             if (funct3 == BEQ) begin
                 BrTaken = (A == B);
             end else if (funct3 == BNE) begin
@@ -29,7 +29,7 @@ module branchComp (
             end else if (funct3 == BGEU) begin
                 BrTaken = (A >= B);
             end
-            // For any other funct3, BrTaken remains 0
+        
         end
     end
 endmodule

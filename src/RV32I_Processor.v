@@ -42,9 +42,7 @@ module RISCV_Single_Cycle(
     // Branch comparator output
     logic branch_taken_flag;
 
-    // PC update logic
-    // PC_out_top holds the current PC value for the instruction fetch stage.
-    // It's updated on the positive clock edge or reset.
+ 
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n)
             PC_current <= 32'b0; // Reset PC to 0
@@ -88,9 +86,6 @@ module RISCV_Single_Cycle(
         .ReadData2(reg_read_data2)
     );
 
-    // ALU input multiplexer: Selects second operand for ALU
-    // ALUSrc[0] = 0: Use ReadData2 (from rs2)
-    // ALUSrc[0] = 1: Use Immediate value
     assign alu_operand_B = (ctrl_ALUSrc[0]) ? immediate_value : reg_read_data2;
 
     // ALU instance
@@ -113,9 +108,6 @@ module RISCV_Single_Cycle(
         .ReadData(mem_read_data)
     );
 
-    // Write-back multiplexer: Selects data to write back to register file
-    // MemToReg = 0: Write ALU result
-    // MemToReg = 1: Write data read from memory
     assign reg_write_data = (ctrl_MemToReg) ? mem_read_data : alu_result;
 
     // Control Unit (CU) instance
@@ -132,8 +124,7 @@ module RISCV_Single_Cycle(
         .RegWrite(ctrl_RegWrite)
     );
 
-    // Branch Comparator instance
-    // Compares ReadData1 and ReadData2 to determine if a branch is taken
+
     branchComp comp(
         .A(reg_read_data1),
         .B(reg_read_data2),
@@ -142,9 +133,6 @@ module RISCV_Single_Cycle(
         .BrTaken(branch_taken_flag)
     );
 
-    // Next PC calculation logic
-    // If branch is taken, PC_next = PC_current + immediate_value (branch target)
-    // Otherwise, PC_next = PC_current + 4 (next sequential instruction)
     assign PC_next = (branch_taken_flag) ? PC_current + immediate_value : PC_current + 32'd4;
 
 endmodule
