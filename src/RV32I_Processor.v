@@ -5,124 +5,146 @@ module RISCV_Single_Cycle(
     output logic [31:0] Instruction_out_top
 );
 
-    // Program Counter
-    logic [31:0] PC_next;
+    // Program Counter (PC) related signals
+    logic [31:0] PC_current; // Current PC value
+    logic [31:0] PC_next;    // Next PC value
 
-    // Wires for instruction fields
-    logic [4:0] rs1, rs2, rd;
-    logic [2:0] funct3;
-    logic [6:0] opcode, funct7;
+    // Instruction fields extracted from Instruction_out_top
+    logic [4:0] rs1_addr, rs2_addr, rd_addr;
+    logic [2:0] inst_funct3;
+    logic [6:0] inst_opcode, inst_funct7;
 
-    // Immediate value
-    logic [31:0] Imm;
+    // Immediate value from immGen
+    logic [31:0] immediate_value;
 
-    // Register file wires
-    logic [31:0] ReadData1, ReadData2, WriteData;
+    // Register file read data
+    logic [31:0] reg_read_data1, reg_read_data2;
+    // Data to be written back to register file
+    logic [31:0] reg_write_data;
 
-    // ALU
-    logic [31:0] ALU_in2, ALU_result;
-    logic ALUZero;
+    // ALU input and output signals
+    logic [31:0] alu_operand_B;
+    logic [31:0] alu_result;
+    logic alu_zero_flag;
 
-    // Data Memory
-    logic [31:0] MemReadData;
+    // Data Memory read data
+    logic [31:0] mem_read_data;
 
-    // Control signals
-    logic [1:0] ALUSrc;
-    logic [3:0] ALUCtrl;
-    logic Branch, MemRead, MemWrite, MemToReg;
-    logic RegWrite, PCSel;
+    // Control signals from CU
+    logic [1:0] ctrl_ALUSrc;
+    logic [3:0] ctrl_ALUOp;
+    logic ctrl_Branch;
+    logic ctrl_MemRead;
+    logic ctrl_MemWrite;
+    logic ctrl_MemToReg;
+    logic ctrl_RegWrite;
 
-    // PC update
+    // Branch comparator output
+    logic branch_taken_flag;
+
+    // PC update logic
+    // PC_out_top holds the current PC value for the instruction fetch stage.
+    // It's updated on the positive clock edge or reset.
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n)
-            PC_out_top <= 32'b0;
+            PC_current <= 32'b0; // Reset PC to 0
         else
-            PC_out_top <= PC_next;
+            PC_current <= PC_next; // Update PC to the next calculated value
     end
 
-    // Instruction Memory (IMEM)
+    // Output current PC and Instruction for external observation/debugging
+    assign PC_out_top = PC_current;
+
+    // Instruction Memory (IMEM) instance
     IMEM IMEM_inst(
-        .addr(PC_out_top),
+        .addr(PC_current),
         .Instruction(Instruction_out_top)
     );
 
-    // Instruction field decoding
-    assign opcode = Instruction_out_top[6:0];
-    assign rd     = Instruction_out_top[11:7];
-    assign funct3 = Instruction_out_top[14:12];
-    assign rs1    = Instruction_out_top[19:15];
-    assign rs2    = Instruction_out_top[24:20];
-    assign funct7 = Instruction_out_top[31:25];
+    // Instruction field decoding (combinatorial)
+    assign inst_opcode = Instruction_out_top[6:0];
+    assign rd_addr     = Instruction_out_top[11:7];
+    assign inst_funct3 = Instruction_out_top[14:12];
+    assign rs1_addr    = Instruction_out_top[19:15];
+    assign rs2_addr    = Instruction_out_top[24:20];
+    assign inst_funct7 = Instruction_out_top[31:25];
 
-    // Immediate generator
+    // Immediate Generator instance
     immGen imm_gen(
         .inst(Instruction_out_top),
-        .imm_out(Imm)
+        .imm_out(immediate_value)
     );
 
-    // Register File (instance name must be Reg_inst for tb)
+    // Register File instance
     registerFile Reg_inst(
         .clk(clk),
         .rst_n(rst_n),
-        .RegWrite(RegWrite),
-        .rs1(rs1),
-        .rs2(rs2),
-        .rd(rd),
-        .WriteData(WriteData),
-        .ReadData1(ReadData1),
-        .ReadData2(ReadData2)
+        .RegWrite(ctrl_RegWrite),
+        .rs1(rs1_addr),
+        .rs2(rs2_addr),
+        .rd(rd_addr),
+        .WriteData(reg_write_data),
+        .ReadData1(reg_read_data1),
+        .ReadData2(reg_read_data2)
     );
 
-    // ALU input selection
-    assign ALU_in2 = (ALUSrc[0]) ? Imm : ReadData2;
+    // ALU input multiplexer: Selects second operand for ALU
+    // ALUSrc[0] = 0: Use ReadData2 (from rs2)
+    // ALUSrc[0] = 1: Use Immediate value
+    assign alu_operand_B = (ctrl_ALUSrc[0]) ? immediate_value : reg_read_data2;
 
-    // ALU
+    // ALU instance
     ALU alu(
-        .A(ReadData1),
-        .B(ALU_in2),
-        .ALUOp(ALUCtrl),
-        .Result(ALU_result),
-        .Zero(ALUZero)
+        .A(reg_read_data1),
+        .B(alu_operand_B),
+        .ALUOp(ctrl_ALUOp),
+        .Result(alu_result),
+        .Zero(alu_zero_flag) // Zero flag from ALU (not directly used for branch in this structure, but good for debugging)
     );
 
-    // Data Memory (DMEM)
+    // Data Memory (DMEM) instance
     DMEM DMEM_inst(
         .clk(clk),
         .rst_n(rst_n),
-        .MemRead(MemRead),
-        .MemWrite(MemWrite),
-        .addr(ALU_result),
-        .WriteData(ReadData2),
-        .ReadData(MemReadData)
+        .MemRead(ctrl_MemRead),
+        .MemWrite(ctrl_MemWrite),
+        .addr(alu_result), // ALU result is the memory address
+        .WriteData(reg_read_data2), // Data to write comes from rs2
+        .ReadData(mem_read_data)
     );
 
-    // Write-back mux
-    assign WriteData = (MemToReg) ? MemReadData : ALU_result;
+    // Write-back multiplexer: Selects data to write back to register file
+    // MemToReg = 0: Write ALU result
+    // MemToReg = 1: Write data read from memory
+    assign reg_write_data = (ctrl_MemToReg) ? mem_read_data : alu_result;
 
-    // Control unit
+    // Control Unit (CU) instance
     CU ctrl(
-        .opcode(opcode),
-        .funct3(funct3),
-        .funct7(funct7),
-        .ALUSrc(ALUSrc),
-        .ALUOp(ALUCtrl),
-        .Branch(Branch),
-        .MemRead(MemRead),
-        .MemWrite(MemWrite),
-        .MemToReg(MemToReg),
-        .RegWrite(RegWrite)
+        .opcode(inst_opcode),
+        .funct3(inst_funct3),
+        .funct7(inst_funct7),
+        .ALUSrc(ctrl_ALUSrc),
+        .ALUOp(ctrl_ALUOp),
+        .Branch(ctrl_Branch),
+        .MemRead(ctrl_MemRead),
+        .MemWrite(ctrl_MemWrite),
+        .MemToReg(ctrl_MemToReg),
+        .RegWrite(ctrl_RegWrite)
     );
 
-    // Branch comparator
+    // Branch Comparator instance
+    // Compares ReadData1 and ReadData2 to determine if a branch is taken
     branchComp comp(
-        .A(ReadData1),
-        .B(ReadData2),
-        .Branch(Branch),
-        .funct3(funct3),
-        .BrTaken(PCSel)
+        .A(reg_read_data1),
+        .B(reg_read_data2),
+        .Branch(ctrl_Branch),
+        .funct3(inst_funct3),
+        .BrTaken(branch_taken_flag)
     );
 
-    // Next PC logic
-    assign PC_next = (PCSel) ? PC_out_top + Imm : PC_out_top + 4;
+    // Next PC calculation logic
+    // If branch is taken, PC_next = PC_current + immediate_value (branch target)
+    // Otherwise, PC_next = PC_current + 4 (next sequential instruction)
+    assign PC_next = (branch_taken_flag) ? PC_current + immediate_value : PC_current + 32'd4;
 
 endmodule
